@@ -1,0 +1,74 @@
+[
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xxxhdpi_ic_launcher_foreground.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xxxhdpi\\ic_launcher_foreground.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-hdpi_ic_launcher_foreground.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-hdpi\\ic_launcher_foreground.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xxhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xhdpi_ic_launcher_foreground.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xhdpi\\ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.echo.app-debug-56:/drawable_ic_notification.xml.flat",
+        "source": "com.echo.app-main-58:/drawable/ic_notification.xml"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\xml_network_security_config.xml.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\xml\\network_security_config.xml"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-mdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-mdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xxxhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\drawable_ic_notification.xml.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\drawable\\ic_notification.xml"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xxxhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xxhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xxhdpi_ic_launcher_foreground.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xxhdpi\\ic_launcher_foreground.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-mdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-hdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-hdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-hdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-xhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-debug-56:\\mipmap-mdpi_ic_launcher_foreground.png.flat",
+        "source": "C:\\Users\\DEVESH SAMANT\\.gradle\\daemon\\8.11.1\\com.echo.app-main-58:\\mipmap-mdpi\\ic_launcher_foreground.png"
+    }
+]

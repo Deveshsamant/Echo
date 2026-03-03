@@ -1,0 +1,13 @@
+openai
+pyautogui
+pyperclip
+pyttsx3
+SpeechRecognition
+python-telegram-bot
+pystray
+Pillow
+mss
+psutil
+pygetwindow
+pycaw
+comtypes

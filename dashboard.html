@@ -1,0 +1,2661 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo — AI Command Center</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            /* Deeper dark theme */
+            --bg: #0b0a13;
+            --bg2: #13111C;
+            --bg-card: rgba(26, 22, 37, 0.75);
+
+            /* Neon Accents matching the designs */
+            --cyan: #00dce8;
+            --cyan-dark: #0891b2;
+            --purple: #8a2be2;
+            --purple-glow: rgba(138, 43, 226, 0.2);
+            --green: #00ff9d;
+            --red: #ff2e93;
+            --yellow: #ffd700;
+            --orange: #ff6b4a;
+
+            /* Typography */
+            --text: #ffffff;
+            --text2: #a19db1;
+            --muted: #5e5a75;
+
+            /* Glassmorphism Borders */
+            --border: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(138, 43, 226, 0.15);
+            --radius-lg: 16px;
+            --radius-md: 10px;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            user-select: none
+        }
+
+        #three-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        /* ═══ Custom Title Bar ═══ */
+        .titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 44px;
+            background: rgba(11, 10, 19, 0.95);
+            border-bottom: 1px solid var(--border);
+            padding: 0 6px 0 20px;
+            -webkit-app-region: drag;
+            z-index: 100;
+            position: relative;
+        }
+
+        .titlebar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .titlebar-logo {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, var(--purple), #5c169e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        .titlebar-logo svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+        }
+
+        .title-text-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .titlebar-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.5px;
+            line-height: 1;
+        }
+
+        .titlebar-subtitle {
+            font-size: 10px;
+            color: var(--muted);
+            line-height: 1;
+        }
+
+        .titlebar-controls {
+            display: flex;
+            -webkit-app-region: no-drag
+        }
+
+        .tb-btn {
+            width: 46px;
+            height: 44px;
+            border: none;
+            background: transparent;
+            color: var(--text2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .tb-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text)
+        }
+
+        .tb-btn.close:hover {
+            background: var(--red);
+            color: #fff
+        }
+
+        .tb-btn svg {
+            width: 16px;
+            height: 16px
+        }
+
+        /* ═══ App Layout ═══ */
+        .app {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh
+        }
+
+        .app-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            background: radial-gradient(circle at top right, rgba(138, 43, 226, 0.05), transparent 40%);
+        }
+
+        /* ═══ Sidebar ═══ */
+        .sidebar {
+            width: 260px;
+            min-width: 260px;
+            background: rgba(19, 17, 28, 0.6);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            transition: width 0.3s;
+        }
+
+        /* Custom Scrollbar for Sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        @media(max-width:1100px) {
+            .sidebar {
+                width: 68px;
+                min-width: 68px;
+                padding: 14px 8px
+            }
+
+            .sidebar .nav-text,
+            .sidebar-label,
+            .sidebar-footer {
+                display: none
+            }
+
+            .sidebar-item {
+                justify-content: center;
+                padding: 12px
+            }
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text2);
+            border: 1px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .sidebar-item.active {
+            background: linear-gradient(90deg, var(--purple-glow), transparent);
+            background-color: rgba(138, 43, 226, 0.1);
+            color: var(--text);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar-item.active svg {
+            color: var(--purple);
+        }
+
+        .sidebar-item svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            color: var(--muted);
+            transition: color 0.2s;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .system-load-pill {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px 16px;
+            font-size: 12px;
+        }
+
+        .slp-header {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text2);
+            margin-bottom: 8px;
+        }
+
+        .slp-status {
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .slp-bar-bg {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .slp-bar-fill {
+            height: 100%;
+            width: 20%;
+            background: linear-gradient(90deg, var(--purple), var(--cyan));
+            border-radius: 2px;
+        }
+
+        .power-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--text2);
+            cursor: pointer;
+            transition: color 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .power-btn:hover {
+            color: var(--text);
+        }
+
+        .power-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        /* ═══ Main Area ═══ */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .main-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 24px;
+            background: rgba(12, 18, 32, 0.6);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .main-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.5px
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.15)
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, .4)
+            }
+
+            50% {
+                box-shadow: 0 0 0 5px rgba(34, 197, 94, 0)
+            }
+        }
+
+        .clock {
+            font-size: 13px;
+            color: var(--text2);
+            font-family: 'JetBrains Mono', monospace
+        }
+
+        .main-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--muted) transparent
+        }
+
+        .main-scroll::-webkit-scrollbar {
+            width: 5px
+        }
+
+        .main-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px
+        }
+
+        /* ═══ Page containers ═══ */
+        .page {
+            display: none
+        }
+
+        .page.active {
+            display: block
+        }
+
+        /* ═══ Stats Grid ═══ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px
+        }
+
+        @media(max-width:1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr)
+            }
+        }
+
+        @media(max-width:700px) {
+            .stats-grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 130px;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text2);
+            font-weight: 500;
+        }
+
+        .stat-ring {
+            width: 44px;
+            height: 44px;
+            position: relative;
+        }
+
+        .stat-ring svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .stat-ring circle {
+            fill: none;
+            stroke-width: 4;
+            stroke-linecap: round;
+        }
+
+        .stat-ring .bg {
+            stroke: rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-card-bottom {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .stat-sub-text {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .stat-delta {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .stat-delta.up {
+            background: rgba(0, 255, 157, 0.15);
+            color: var(--green);
+        }
+
+        .stat-delta.down {
+            background: rgba(255, 46, 147, 0.15);
+            color: var(--red);
+        }
+
+        .stat-delta.neutral {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text2);
+        }
+
+        .stat-bar {
+            height: 4px;
+            width: 40px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-top: 16px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        /* ═══ Panel Grid ═══ */
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 20px;
+        }
+
+        @media(max-width:1100px) {
+            .panel-grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* ═══ Sections ═══ */
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            border-radius: 2px;
+            background: var(--cyan)
+        }
+
+        .section-title.purple::before {
+            background: var(--purple)
+        }
+
+        .section-title.green::before {
+            background: var(--green)
+        }
+
+        .section-title.yellow::before {
+            background: var(--yellow)
+        }
+
+        /* ═══ Chat ═══ */
+        .chat-container {
+            background: var(--bg-card);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 280px);
+            min-height: 250px
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scrollbar-width: thin
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 4px
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px
+        }
+
+        .chat-msg {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+            animation: msgIn 0.3s ease;
+            word-wrap: break-word
+        }
+
+        @keyframes msgIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .chat-msg.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, rgba(0, 220, 232, 0.12), rgba(0, 220, 232, 0.04));
+            border: 1px solid rgba(0, 220, 232, 0.12)
+        }
+
+        .chat-msg.ai {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid var(--border)
+        }
+
+        .chat-msg-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 3px
+        }
+
+        .chat-msg.user .chat-msg-label {
+            color: var(--cyan)
+        }
+
+        .chat-msg.ai .chat-msg-label {
+            color: var(--purple)
+        }
+
+        .chat-input-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-top: 1px solid var(--border);
+            background: rgba(10, 16, 28, 0.5)
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 9px 14px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border 0.2s
+        }
+
+        .chat-input:focus {
+            border-color: rgba(0, 220, 232, 0.25)
+        }
+
+        .chat-input::placeholder {
+            color: var(--muted)
+        }
+
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            border: none;
+            background: linear-gradient(135deg, var(--cyan), var(--cyan-dark));
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 0 12px rgba(0, 220, 232, 0.15)
+        }
+
+        .send-btn:hover {
+            transform: scale(1.06);
+            box-shadow: 0 0 20px rgba(0, 220, 232, 0.3)
+        }
+
+        .send-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: #080c14
+        }
+
+        /* ═══ Right Info Cards ═══ */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 14px
+        }
+
+        .info-card-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .info-value {
+            font-size: 13px;
+            color: var(--text2);
+            line-height: 1.5
+        }
+
+        .tunnel-url {
+            font-size: 11px;
+            color: var(--cyan);
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-all;
+            margin-top: 6px;
+            padding: 8px 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s
+        }
+
+        .tunnel-url:hover {
+            background: rgba(0, 220, 232, 0.08)
+        }
+
+        /* ═══ Calendar Page ═══ */
+        .cal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px
+        }
+
+        .add-btn {
+            padding: 8px 20px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, var(--cyan), var(--cyan-dark));
+            color: #080c14;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 220, 232, 0.3);
+        }
+
+        .cal-wrapper {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+
+        @media(max-width:1100px) {
+            .cal-wrapper {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        .cal-grid-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cal-task-panel {
+            display: flex;
+            flex-direction: column;
+            background: rgba(10, 16, 28, 0.4);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .cal-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .cal-month {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .cal-nav button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: 0.2s;
+        }
+
+        .cal-nav button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .cal-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .cal-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            flex: 1;
+        }
+
+        .cal-day {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: 0.2s;
+            min-height: 80px;
+        }
+
+        .cal-day:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .cal-day.active {
+            background: rgba(180, 80, 255, 0.15);
+            border-color: rgba(180, 80, 255, 0.3);
+            box-shadow: inset 0 0 20px rgba(180, 80, 255, 0.1);
+        }
+
+        .cal-day.other-month {
+            opacity: 0.3;
+        }
+
+        .cal-day-num {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text2);
+        }
+
+        .cal-day.active .cal-day-num {
+            color: var(--text);
+        }
+
+        .cal-day-dots {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .cal-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .cal-dot.purple {
+            background: var(--purple);
+        }
+
+        .cal-dot.green {
+            background: var(--green);
+        }
+
+        .cal-dot.cyan {
+            background: var(--cyan);
+        }
+
+        .cal-selected-date {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--cyan);
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .event-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .event-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--purple);
+        }
+
+        .event-card.completed::before {
+            background: var(--green);
+        }
+
+        .event-card:hover {
+            border-color: rgba(180, 80, 255, 0.2);
+            transform: translateX(2px);
+        }
+
+        .event-time {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .event-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+
+        .event-meta {
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .ev-btn {
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text2);
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .ev-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text)
+        }
+
+        .ev-btn.done:hover {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--green);
+            border-color: var(--green)
+        }
+
+        .ev-btn.del:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border-color: var(--red)
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: 8px
+        }
+
+        /* ═══ Phone Link Animations & Layout ═══ */
+        .pl-graphic {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pl-phone-icon {
+            z-index: 10;
+            color: var(--cyan);
+            width: 64px;
+            height: 64px;
+            background: rgba(10, 16, 28, 0.8);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(0, 220, 232, 0.2);
+            border: 1px solid rgba(0, 220, 232, 0.4);
+        }
+
+        .pl-phone-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .pl-rings {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .pl-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 1px solid rgba(0, 220, 232, 0.3);
+            animation: ripple 3s linear infinite;
+        }
+
+        .pl-ring.r1 {
+            width: 100px;
+            height: 100px;
+            animation-delay: 0s;
+        }
+
+        .pl-ring.r2 {
+            width: 180px;
+            height: 180px;
+            animation-delay: 1s;
+        }
+
+        .pl-ring.r3 {
+            width: 260px;
+            height: 260px;
+            animation-delay: 2s;
+        }
+
+        @keyframes ripple {
+            0% {
+                width: 50px;
+                height: 50px;
+                opacity: 1;
+                border-width: 2px;
+            }
+
+            100% {
+                width: 350px;
+                height: 350px;
+                opacity: 0;
+                border-width: 1px;
+            }
+        }
+
+        .pl-glass-card {
+            background: rgba(10, 16, 28, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .pl-glass-card:hover {
+            border-color: rgba(0, 220, 232, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .pl-card-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pl-card-title::before {
+            content: '';
+            width: 4px;
+            height: 12px;
+            background: var(--cyan);
+            border-radius: 2px;
+        }
+
+        .pl-action-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: var(--text2);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .pl-action-btn:hover {
+            background: rgba(0, 220, 232, 0.1);
+            color: var(--cyan);
+            border-color: rgba(0, 220, 232, 0.3);
+        }
+
+        @media(max-width: 900px) {
+            #page-phonelink>div:last-child {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .badge.pending {
+            background: rgba(234, 179, 8, 0.12);
+            color: var(--yellow)
+        }
+
+        .badge.completed {
+            background: rgba(34, 197, 94, 0.12);
+            color: var(--green)
+        }
+
+        /* ═══ Phone Link Page ═══ */
+        .link-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px
+        }
+
+        @media(max-width:900px) {
+            .link-grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px
+        }
+
+        .link-card-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .link-card-text {
+            font-size: 13px;
+            color: var(--text2);
+            line-height: 1.6
+        }
+
+        .copy-btn {
+            margin-top: 10px;
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 220, 232, 0.2);
+            background: rgba(0, 220, 232, 0.06);
+            color: var(--cyan);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif
+        }
+
+        .copy-btn:hover {
+            background: rgba(0, 220, 232, 0.12)
+        }
+
+        /* ═══ Modal ═══ */
+        .modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center
+        }
+
+        .modal-bg.show {
+            display: flex
+        }
+
+        .modal {
+            background: #0f1728;
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            width: 420px;
+            max-width: 90vw;
+            animation: modalIn 0.2s ease
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95)
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1)
+            }
+        }
+
+        .modal h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .modal-field {
+            margin-bottom: 12px
+        }
+
+        .modal-field label {
+            font-size: 11px;
+            color: var(--text2);
+            letter-spacing: 1px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px
+        }
+
+        .modal-field input,
+        .modal-field select {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            outline: none
+        }
+
+        .modal-field input:focus {
+            border-color: rgba(0, 220, 232, 0.3)
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+            justify-content: flex-end
+        }
+
+        .modal-btn {
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.15s
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, var(--cyan), var(--cyan-dark));
+            color: #080c14
+        }
+
+        .modal-btn.secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text2)
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-1px)
+        }
+
+        /* ═══ Spinner ═══ */
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(0, 220, 232, 0.2);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: inline-block
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        /* ═══ Log ═══ */
+        .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px
+        }
+
+        .log-time {
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px
+        }
+
+        .log-text {
+            color: var(--text2);
+            margin-top: 1px
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="three-bg"></canvas>
+
+    <div class="app">
+        <!-- ═══ Custom Title Bar ═══ -->
+        <div class="titlebar" id="titlebar">
+            <div class="titlebar-left">
+                <div class="titlebar-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+                <div class="title-text-group">
+                    <span class="titlebar-title">ECHO</span>
+                    <span class="titlebar-subtitle">Command Center v2.4</span>
+                </div>
+            </div>
+            <div class="titlebar-controls">
+                <button class="tb-btn" onclick="minimizeWin()" title="Minimize">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                </button>
+                <button class="tb-btn" onclick="toggleMaximize()" title="Maximize">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="4" width="16" height="16" rx="2" />
+                    </svg>
+                </button>
+                <button class="tb-btn close" onclick="closeWin()" title="Close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="app-body">
+            <!-- ═══ Sidebar ═══ -->
+            <div class="sidebar">
+                <div class="sidebar-item active" onclick="switchPage('home')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span class="nav-text">Overview</span>
+                </div>
+                <div class="sidebar-item" onclick="switchPage('terminal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 17 10 11 4 5" />
+                        <line x1="12" y1="19" x2="20" y2="19" />
+                    </svg>
+                    <span class="nav-text">Terminal</span>
+                </div>
+                <div class="sidebar-item" onclick="switchPage('calendar')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span class="nav-text">Calendar</span>
+                </div>
+                <div class="sidebar-item" onclick="switchPage('queue')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                    <span class="nav-text">Queued Tasks</span>
+                </div>
+
+
+                <div class="sidebar-footer">
+                    <div class="system-load-pill">
+                        <div class="slp-header">
+                            <span>System Load</span>
+                            <span class="slp-status">Stable</span>
+                        </div>
+                        <div class="slp-bar-bg">
+                            <div class="slp-bar-fill"></div>
+                        </div>
+                    </div>
+
+                    <div class="power-btn" onclick="doPower('shutdown')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                            <line x1="12" y1="2" x2="12" y2="12"></line>
+                        </svg>
+                        <span>Power Off</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Main Area ═══ -->
+            <div class="main-area">
+                <div class="main-header">
+                    <div class="main-header-left">
+                        <div class="page-title" id="page-title">Overview</div>
+                        <div class="status-pill">
+                            <div class="status-dot" id="status-dot"></div><span id="status-text"
+                                style="color:var(--green)">ONLINE</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <button id="tts-toggle"
+                            onclick="ttsEnabled=!ttsEnabled;this.textContent=ttsEnabled?'🔊':'🔇';this.title=ttsEnabled?'Voice ON (Ctrl+T)':'Voice OFF (Ctrl+T)';addLog(ttsEnabled?'Voice ON':'Voice OFF')"
+                            title="Voice ON (Ctrl+T)"
+                            style="background:none;border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:16px;transition:all 0.2s">🔊</button>
+                        <div class="clock" id="clock">00:00:00</div>
+                    </div>
+                </div>
+
+                <div class="main-scroll">
+                    <!-- ═══ HOME PAGE ═══ -->
+                    <div class="page active" id="page-home">
+
+                        <!-- Top Stats Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">CPU Load</div>
+                                    <div class="stat-ring">
+                                        <svg viewBox="0 0 36 36">
+                                            <circle class="bg" cx="18" cy="18" r="15"></circle>
+                                            <circle cx="18" cy="18" r="15" stroke="var(--red)" stroke-dasharray="94.2"
+                                                stroke-dashoffset="80" id="cpu-ring"></circle>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="stat-card-bottom">
+                                    <div class="stat-value" id="cpu-val">0%</div>
+                                    <div class="stat-delta neutral" id="cpu-diff">-</div>
+                                </div>
+                                <div class="stat-bar">
+                                    <div class="stat-bar-fill" style="width: 25%; background: var(--red);"></div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">RAM Usage</div>
+                                    <div class="stat-ring">
+                                        <svg viewBox="0 0 36 36">
+                                            <circle class="bg" cx="18" cy="18" r="15"></circle>
+                                            <circle cx="18" cy="18" r="15" stroke="var(--cyan)" stroke-dasharray="94.2"
+                                                stroke-dashoffset="50" id="ram-ring"></circle>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="stat-card-bottom">
+                                    <div class="stat-value" id="ram-val">0</div>
+                                    <div class="stat-sub-text">GB</div>
+                                </div>
+                                <div class="stat-bar">
+                                    <div class="stat-bar-fill" style="width: 50%; background: var(--cyan);"></div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">Disk Space</div>
+                                    <div class="stat-ring">
+                                        <svg viewBox="0 0 36 36">
+                                            <circle class="bg" cx="18" cy="18" r="15"></circle>
+                                            <circle cx="18" cy="18" r="15" stroke="var(--yellow)"
+                                                stroke-dasharray="94.2" stroke-dashoffset="30" id="disk-ring"></circle>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="stat-card-bottom">
+                                    <div class="stat-value" id="disk-val">0</div>
+                                    <div class="stat-sub-text">GB</div>
+                                </div>
+                                <div class="stat-bar">
+                                    <div class="stat-bar-fill" style="width: 70%; background: var(--yellow);"></div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-card-top">
+                                    <div class="stat-label">GPU Temp</div>
+                                    <div class="stat-ring">
+                                        <svg viewBox="0 0 36 36">
+                                            <circle class="bg" cx="18" cy="18" r="15"></circle>
+                                            <circle cx="18" cy="18" r="15" stroke="var(--green)" stroke-dasharray="94.2"
+                                                stroke-dashoffset="60" id="gpu-ring"></circle>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="stat-card-bottom">
+                                    <div class="stat-value" id="gpu-val">--<span style="font-size:18px">°C</span></div>
+                                    <div class="stat-delta neutral" id="gpu-diff">-</div>
+                                </div>
+                                <div class="stat-bar">
+                                    <div class="stat-bar-fill" style="width: 30%; background: var(--green);"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel Grid -->
+                        <div class="panel-grid">
+
+                            <!-- Left: Quick Terminal -->
+                            <div class="chat-container">
+                                <div
+                                    style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.05)">
+                                    <div style="display:flex; align-items:center; gap:8px">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"
+                                            style="width:16px;height:16px">
+                                            <polyline points="4 17 10 11 4 5"></polyline>
+                                            <line x1="12" y1="19" x2="20" y2="19"></line>
+                                        </svg>
+                                        <span style="font-size:14px; font-weight:600; color:var(--text)">Quick
+                                            Terminal</span>
+                                    </div>
+                                    <div style="display:flex; gap:6px">
+                                        <div style="width:8px; height:8px; border-radius:50%; background:var(--red)">
+                                        </div>
+                                        <div style="width:8px; height:8px; border-radius:50%; background:var(--yellow)">
+                                        </div>
+                                        <div style="width:8px; height:8px; border-radius:50%; background:var(--green)">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chat-messages" id="home-chat-messages"
+                                    style="font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.6">
+                                    <div style="color:var(--cyan)">sys_admin@ECHO:~$ <span
+                                            style="color:var(--text2)">initiating system diagnostic sequence...</span>
+                                    </div>
+                                    <div style="color:var(--text2)"><span style="color:var(--green)">✓</span> Memory
+                                        integrity check passed.</div>
+                                    <div style="color:var(--text2)"><span style="color:var(--green)">✓</span> Network
+                                        encryption verified. (AES-256)</div>
+                                    <div style="color:var(--yellow)">⚠ Optimizing background thread allocation [PID:
+                                        4420]</div>
+                                    <br>
+                                    <div style="color:var(--cyan)">sys_admin@ECHO:~$ <span class="cursor"
+                                            style="display:inline-block;width:8px;height:14px;background:var(--text2);vertical-align:middle;animation:blink 1s infinite"></span>
+                                    </div>
+                                </div>
+
+                                <div class="chat-input-bar"
+                                    style="margin: 16px; border-radius: 12px; background: rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.05)">
+                                    <button class="mic-btn" id="home-mic-btn" onclick="toggleVoice('home')"
+                                        title="Voice command" style="background:transparent; color:var(--purple)"><svg
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            style="width:18px;height:18px">
+                                            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                                            <path d="M19 10v2a7 7 0 01-14 0v-2" />
+                                            <line x1="12" y1="19" x2="12" y2="23" />
+                                        </svg></button>
+                                    <input class="chat-input" id="home-chat-input" placeholder="Type a command..."
+                                        autocomplete="off" style="font-family:'JetBrains Mono', monospace">
+                                    <button class="send-btn" onclick="sendFromHome()"
+                                        style="background:transparent; color:var(--text2)"><svg viewBox="0 0 24 24"
+                                            fill="currentColor" stroke="none" style="width:18px;height:18px">
+                                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                                        </svg></button>
+                                </div>
+                            </div>
+
+                            <!-- Right: Info Panels -->
+                            <div style="display:flex; flex-direction:column; gap:16px">
+
+
+
+                                <!-- Live Camera Panel -->
+                                <div class="stat-card" style="padding:16px; flex:1">
+                                    <div
+                                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+                                        <div style="display:flex; align-items:center; gap:8px">
+                                            <div id="cam-dot"
+                                                style="width:8px; height:8px; background:var(--red); border-radius:50%; animation:pulse 2s infinite">
+                                            </div>
+                                            <span style="font-size:13px; font-weight:600">Live Camera</span>
+                                        </div>
+                                        <div style="display:flex; gap:8px; align-items:center">
+                                            <button onclick="analyzeCamera()"
+                                                style="background:linear-gradient(135deg, var(--purple), #5c169e); border:none; color:#fff; padding:5px 14px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; letter-spacing:0.5px"
+                                                onmouseover="this.style.transform='scale(1.05)'"
+                                                onmouseout="this.style.transform='scale(1)'">🧠 Analyze</button>
+                                        </div>
+                                    </div>
+                                    <div id="camera-box"
+                                        style="flex:1; border-radius:12px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; min-height:180px">
+                                        <video id="camera-feed" autoplay playsinline muted
+                                            style="width:100%; border-radius:10px; display:none"></video>
+                                        <div id="camera-placeholder"
+                                            style="text-align:center; padding:20px; cursor:pointer"
+                                            onclick="startCamera()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)"
+                                                stroke-width="1.5" style="width:32px;height:32px;margin-bottom:8px">
+                                                <path
+                                                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                                <circle cx="12" cy="13" r="4" />
+                                            </svg>
+                                            <div
+                                                style="font-size:11px; color:var(--muted); font-family:'JetBrains Mono'">
+                                                [ CLICK TO START CAMERA ]</div>
+                                        </div>
+                                    </div>
+                                    <div id="camera-analysis"
+                                        style="margin-top:10px; font-size:12px; color:var(--text2); line-height:1.5; max-height:60px; overflow-y:auto; display:none; padding:8px 10px; background:rgba(0,0,0,0.3); border-radius:8px; scrollbar-width:thin">
+                                    </div>
+                                </div>
+
+                                <!-- Volume Panel -->
+                                <div class="stat-card" style="padding:16px; min-height:80px; justify-content:center">
+                                    <div
+                                        style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom:12px">
+                                        <span>System Volume</span>
+                                        <span id="vol-val" style="color:var(--purple)">50%</span>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:12px">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"
+                                            style="width:14px;height:14px">
+                                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                        </svg>
+                                        <input type="range" id="vol-slider" min="0" max="100" value="50"
+                                            style="flex:1; height:6px; -webkit-appearance:none; background:rgba(255,255,255,0.1); border-radius:3px; outline:none"
+                                            oninput="setVolume(this.value)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2"
+                                            style="width:16px;height:16px">
+                                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Mini Queue Panel -->
+                                <div class="stat-card" style="padding:16px; min-height:120px; flex:1">
+                                    <div
+                                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+                                        <div style="display:flex; align-items:center; gap:8px">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"
+                                                style="width:16px;height:16px">
+                                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                                            </svg>
+                                            <span style="font-size:13px; font-weight:600">Active Queue</span>
+                                        </div>
+                                        <button onclick="switchPage('queue')"
+                                            style="background:none; border:none; color:var(--muted); font-size:11px; cursor:pointer; text-decoration:underline">View
+                                            All</button>
+                                    </div>
+                                    <div id="mini-queue-list"
+                                        style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; max-height:150px; scrollbar-width:none">
+                                        <div
+                                            style="color:var(--muted); font-size:12px; text-align:center; padding:10px">
+                                            No active tasks.</div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ TERMINAL PAGE ═══ -->
+                    <div class="page" id="page-terminal">
+                        <div
+                            style="display:flex; flex-direction:column; height:calc(100vh - 100px); position:relative;">
+
+                            <!-- Messages Area -->
+                            <div id="term-chat-messages"
+                                style="flex:1; overflow-y:auto; padding:20px 40px; display:flex; flex-direction:column; gap:24px; scrollbar-width:none; padding-bottom:120px;">
+                                <!-- Initial AI Message -->
+                                <div class="term-msg-wrapper ai"
+                                    style="align-self:flex-start; max-width:80%; display:flex; gap:16px; animation:msgIn 0.3s ease;">
+                                    <div
+                                        style="width:44px; height:44px; border-radius:50%; background:rgba(180, 80, 255, 0.1); border:1px solid rgba(180, 80, 255, 0.3); display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative;">
+                                        <div
+                                            style="position:absolute; bottom:0px; right:0px; width:12px; height:12px; background:var(--green); border-radius:50%; border:2px solid var(--bg-card);">
+                                        </div>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"
+                                            style="width:20px;height:20px">
+                                            <rect x="3" y="11" width="18" height="10" rx="2" />
+                                            <circle cx="12" cy="5" r="2" />
+                                            <path d="M12 7v4" />
+                                            <line x1="8" y1="16" x2="8" y2="16" />
+                                            <line x1="16" y1="16" x2="16" y2="16" />
+                                        </svg>
+                                    </div>
+                                    <div
+                                        style="flex:1; background:var(--bg-card); border:1px solid rgba(180, 80, 255, 0.15); border-radius:16px; padding:16px 20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); backdrop-filter:blur(10px);">
+                                        <div
+                                            style="font-size:11px; color:var(--purple); font-weight:700; margin-bottom:8px; letter-spacing:1px; display:flex; justify-content:space-between;">
+                                            <span>NEXUS CORE</span>
+                                            <span style="color:var(--text2); font-weight:400;">Just now</span>
+                                        </div>
+                                        <div style="font-size:14px; color:var(--text); line-height:1.6;">
+                                            Terminal ready. I can control your entire PC — open apps, search the web,
+                                            manage files, take screenshots, and more. Just type your command.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Floating Input Area -->
+                            <div
+                                style="position:absolute; bottom:20px; left:40px; right:40px; display:flex; flex-direction:column; gap:12px;">
+                                <!-- Suggestions -->
+                                <div style="display:flex; gap:12px; padding-left:10px;">
+                                    <div onclick="sendQuick('Run system diagnostics')"
+                                        style="padding:8px 16px; background:rgba(255, 255, 255, 0.03); border:1px solid rgba(255, 255, 255, 0.08); border-radius:20px; font-size:12px; color:var(--text2); cursor:pointer; transition:all 0.2s;"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.08)'"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.03)'">Run diagnostics
+                                    </div>
+                                    <div onclick="sendQuick('take screenshot')"
+                                        style="padding:8px 16px; background:rgba(255, 255, 255, 0.03); border:1px solid rgba(255, 255, 255, 0.08); border-radius:20px; font-size:12px; color:var(--text2); cursor:pointer; transition:all 0.2s;"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.08)'"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.03)'">Take screenshot
+                                    </div>
+                                    <div onclick="sendQuick('what time is it?')"
+                                        style="padding:8px 16px; background:rgba(255, 255, 255, 0.03); border:1px solid rgba(255, 255, 255, 0.08); border-radius:20px; font-size:12px; color:var(--text2); cursor:pointer; transition:all 0.2s;"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.08)'"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.03)'">Check time</div>
+                                </div>
+
+                                <!-- Input Bar -->
+                                <div
+                                    style="background:var(--bg-card); border:1px solid var(--border); border-radius:24px; display:flex; padding:12px 20px; align-items:center; gap:16px; box-shadow:0 15px 40px rgba(0,0,0,0.5); backdrop-filter:blur(24px);">
+                                    <button onclick="toggleVoice('term')"
+                                        style="background:transparent; border:none; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; transition:color 0.2s;"
+                                        onmouseover="this.style.color='var(--purple)'"
+                                        onmouseout="this.style.color='var(--muted)'">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            style="width:20px;height:20px">
+                                            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                                            <path d="M19 10v2a7 7 0 01-14 0v-2" />
+                                            <line x1="12" y1="19" x2="12" y2="23" />
+                                        </svg>
+                                    </button>
+
+                                    <input id="term-chat-input" placeholder="Enter command or query..."
+                                        style="flex:1; background:transparent; border:none; outline:none; color:var(--text); font-size:15px; font-family:'Inter', sans-serif;"
+                                        autocomplete="off">
+
+                                    <div
+                                        style="display:flex; align-items:center; gap:16px; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:0.5px;">
+                                        <span style="opacity:0.6">[ENTER] TO SEND</span>
+                                        <button onclick="sendFromTerm()"
+                                            style="width:40px; height:40px; border-radius:50%; background:var(--purple); border:none; display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; box-shadow:0 4px 12px rgba(180,80,255,0.3); transition:transform 0.2s;"
+                                            onmouseover="this.style.transform='scale(1.05)'"
+                                            onmouseout="this.style.transform='scale(1)'">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                style="width:18px;height:18px;margin-left:2px">
+                                                <line x1="22" y1="2" x2="11" y2="13" />
+                                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ CALENDAR PAGE ═══ -->
+                    <div id="page-calendar" class="page">
+                        <div class="page-header">
+                            <h2>Calendar & Reminders</h2>
+                        </div>
+                        <div class="cal-container">
+                            <div class="cal-left">
+                                <div class="cal-header">
+                                    <button class="cal-nav-btn" onclick="changeMonth(-1)">❮</button>
+                                    <div class="cal-month-label" id="cal-month-label">May 2026</div>
+                                    <button class="cal-nav-btn" onclick="changeMonth(1)">❯</button>
+                                </div>
+                                <div class="cal-weekdays">
+                                    <div style="color:var(--muted);font-size:13px;padding:20px;text-align:center">
+                                        Loading events...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <!-- ═══ POWER PAGE ═══ -->
+                    <div class="page" id="page-power">
+                        <div class="section-title" style="--clr:var(--red)">⚡ POWER CONTROLS</div>
+                        <div class="link-grid" style="margin-top:12px">
+                            <div class="link-card" style="cursor:pointer;text-align:center" onclick="doPower('lock')">
+                                <div style="font-size:36px;margin-bottom:8px">🔒</div>
+                                <div class="link-card-title" style="justify-content:center;color:var(--yellow)">Lock PC
+                                </div>
+                                <div class="link-card-text">Lock the workstation</div>
+                            </div>
+                            <div class="link-card" style="cursor:pointer;text-align:center" onclick="doPower('sleep')">
+                                <div style="font-size:36px;margin-bottom:8px">😴</div>
+                                <div class="link-card-title" style="justify-content:center;color:var(--purple)">Sleep
+                                </div>
+                                <div class="link-card-text">Put PC to sleep</div>
+                            </div>
+                            <div class="link-card" style="cursor:pointer;text-align:center"
+                                onclick="doPower('restart')">
+                                <div style="font-size:36px;margin-bottom:8px">🔄</div>
+                                <div class="link-card-title" style="justify-content:center;color:var(--orange)">Restart
+                                </div>
+                                <div class="link-card-text">Restart the computer</div>
+                            </div>
+                            <div class="link-card" style="cursor:pointer;text-align:center"
+                                onclick="doPower('shutdown')">
+                                <div style="font-size:36px;margin-bottom:8px">⏻</div>
+                                <div class="link-card-title" style="justify-content:center;color:var(--red)">Shutdown
+                                </div>
+                                <div class="link-card-text">Shut down the computer</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Add Event Modal ═══ -->
+    <div class="modal-bg" id="add-event-modal">
+        <div class="modal">
+            <h3>📅 Add Calendar Event</h3>
+            <div class="modal-field"><label>TITLE</label><input id="ev-title" placeholder="e.g. Open Chrome at 9 AM">
+            </div>
+            <div class="modal-field"><label>DATE (YYYY-MM-DD)</label><input id="ev-date" type="date"></div>
+            <div class="modal-field"><label>TIME (HH:MM)</label><input id="ev-time" type="time"></div>
+            <div class="modal-field"><label>DESCRIPTION</label><input id="ev-desc" placeholder="Optional details"></div>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="hideAddEvent()">Cancel</button>
+                <button class="modal-btn primary" onclick="addEvent()">Add Event</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══ Title Bar Drag ═══
+        (function () {
+            const tb = document.getElementById('titlebar');
+            let dragging = false, ox = 0, oy = 0;
+            tb.addEventListener('mousedown', e => {
+                if (e.target.closest('.titlebar-controls')) return;
+                dragging = true; ox = e.screenX; oy = e.screenY;
+            });
+            window.addEventListener('mousemove', e => {
+                if (!dragging) return;
+                const dx = e.screenX - ox, dy = e.screenY - oy;
+                ox = e.screenX; oy = e.screenY;
+                if (window.pywebview) pywebview.api.move_window(dx, dy);
+                else window.moveBy(dx, dy);
+            });
+            window.addEventListener('mouseup', () => { dragging = false });
+        })();
+
+        function minimizeWin() { if (window.pywebview) pywebview.api.minimize(); else { } }
+        function toggleMaximize() { if (window.pywebview) pywebview.api.toggle_fullscreen(); else { } }
+        function closeWin() { if (window.pywebview) pywebview.api.close(); else window.close() }
+
+        // ═══ Three.js 3D Background ═══
+        (function () {
+            const c = document.getElementById('three-bg'), r = new THREE.WebGLRenderer({ canvas: c, alpha: true, antialias: true });
+            r.setSize(window.innerWidth, window.innerHeight); r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            cam.position.set(0, 0, 6);
+            const N = 180, geo = new THREE.BufferGeometry(), pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+            for (let i = 0; i < N; i++) { pos[i * 3] = (Math.random() - 0.5) * 20; pos[i * 3 + 1] = (Math.random() - 0.5) * 12; pos[i * 3 + 2] = (Math.random() - 0.5) * 8 - 2; const t = Math.random(); col[i * 3] = 0 * (1 - t) + 0.66 * t; col[i * 3 + 1] = 0.86 * (1 - t) + 0.33 * t; col[i * 3 + 2] = 0.91 * (1 - t) + 0.97 * t; }
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+            const pm = new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, sizeAttenuation: true });
+            const pts = new THREE.Points(geo, pm); s.add(pts);
+            const ig = new THREE.IcosahedronGeometry(1.2, 1), im = new THREE.MeshBasicMaterial({ color: 0x00dce8, wireframe: true, transparent: true, opacity: 0.06 });
+            const ico = new THREE.Mesh(ig, im); ico.position.set(5, -1.5, -4); s.add(ico);
+            const tg = new THREE.TorusGeometry(0.7, 0.18, 16, 50), tm = new THREE.MeshBasicMaterial({ color: 0xa855f7, wireframe: true, transparent: true, opacity: 0.05 });
+            const tor = new THREE.Mesh(tg, tm); tor.position.set(-5, 2, -4); s.add(tor);
+            function anim() {
+                requestAnimationFrame(anim); const t = Date.now() * 0.0003; pts.rotation.y = t * 0.12; pts.rotation.x = Math.sin(t * 0.5) * 0.04;
+                ico.rotation.x = t * 0.7; ico.rotation.y = t * 0.4; tor.rotation.x = t * 0.5; tor.rotation.z = t * 0.35; r.render(s, cam)
+            } anim();
+            window.addEventListener('resize', () => { cam.aspect = window.innerWidth / window.innerHeight; cam.updateProjectionMatrix(); r.setSize(window.innerWidth, window.innerHeight) });
+        })();
+
+        // ═══ Clock ═══
+        function tick() { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: true }); requestAnimationFrame(tick) } tick();
+
+        // ═══ Navigation ═══
+        const pages = ['home', 'terminal', 'calendar', 'power'];
+        const titles = { home: 'Overview', terminal: 'Terminal', calendar: 'Calendar & Tasks', power: 'Power Controls' };
+        let currentPage = 'home';
+        function switchPage(id) {
+            currentPage = id;
+            pages.forEach(p => { const el = document.getElementById('page-' + p); if (el) el.classList.toggle('active', p === id) });
+            document.getElementById('page-title').textContent = titles[id] || id;
+            document.querySelectorAll('.sidebar-item').forEach((el, i) => { el.classList.toggle('active', el.getAttribute('onclick') === `switchPage('${id}')`) });
+            if (id === 'calendar') fetchCalendar();
+        }
+
+        // ═══ API ═══
+        const API = 'http://localhost:5000';
+        const logs = [];
+
+        // ═══ Window Controls ═══
+        function minimizeWin() { pywebview.api.minimize() }
+        function toggleMaximize() { pywebview.api.toggle_maximize() }
+        function closeWin() { pywebview.api.close() }
+
+        function addLog(t) {
+            const now = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }); logs.unshift({ time: now, text: t }); if (logs.length > 15) logs.pop();
+            const el = document.getElementById('activity-log'); if (el) el.innerHTML = logs.map(l => `<div class="log-entry"><div class="log-time">${l.time}</div><div class="log-text">${l.text}</div></div>`).join('');
+        }
+
+        async function fetchStats() {
+            try {
+                const r = await fetch(API + '/api/stats'), s = await r.json();
+                const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v };
+
+                const updateStatCard = (cardIdx, val, max, txtMain, txtSub, isUp, deltaTxt) => {
+                    const cards = document.querySelectorAll('.stats-grid .stat-card');
+                    if (cards.length <= cardIdx) return;
+                    const c = cards[cardIdx];
+                    const pct = Math.max(0, Math.min(100, (val / (max || 1)) * 100));
+
+                    c.querySelector('.stat-value').innerHTML = txtMain + (txtSub ? `<span style="font-size:16px"> ${txtSub}</span>` : '');
+
+                    const ring = c.querySelector('circle:nth-child(2)');
+                    if (ring) ring.style.strokeDashoffset = 94.2 - (pct / 100 * 94.2);
+
+                    const bar = c.querySelector('.stat-bar-fill');
+                    if (bar) bar.style.width = pct + '%';
+
+                    const delta = c.querySelector('.stat-delta');
+                    if (delta) {
+                        delta.textContent = deltaTxt || '-';
+                        delta.className = 'stat-delta ' + (isUp === null ? 'neutral' : (isUp ? 'up' : 'down'));
+                    }
+                };
+
+                updateStatCard(0, s.cpu_percent, 100, Math.round(s.cpu_percent) + '%', '', null, s.cpu_count + ' cores');
+                updateStatCard(1, s.ram_percent, 100, s.ram_used_gb, 'GB', null, Math.round(s.ram_percent) + '%');
+                updateStatCard(2, s.disk_percent || 0, 100, s.disk_used_gb || 0, 'GB', null, Math.round(s.disk_percent || 0) + '%');
+
+                if (s.gpu_percent >= 0) {
+                    updateStatCard(3, s.gpu_percent, 100, s.gpu_percent + '%', '', null, Math.round(s.gpu_percent) + '% Load');
+                } else {
+                    updateStatCard(3, 0, 100, '--', '', null, 'N/A');
+                }
+
+                set('active-window', s.active_window || 'Desktop');
+                set('status-text', 'ONLINE'); document.getElementById('status-dot').style.background = 'var(--green)';
+                document.querySelector('.slp-status').textContent = 'Stable';
+            } catch (e) {
+                document.getElementById('status-text').textContent = 'OFFLINE'; document.getElementById('status-dot').style.background = 'var(--red)';
+                const st = document.querySelector('.slp-status'); if (st) { st.textContent = 'Offline'; st.style.color = 'var(--red)'; }
+            }
+        }
+
+        let _tunnelUrl = '';
+        async function fetchTunnel() {
+            try {
+                const r = await fetch(API + '/api/tunnel'), d = await r.json(); if (d.url) {
+                    _tunnelUrl = d.url;
+                    ['tunnel-url', 'pl-tunnel-url'].forEach(id => { const e = document.getElementById(id); if (e) e.textContent = d.url });
+                    const ms = document.getElementById('mobile-status'); if (ms) ms.innerHTML = '<strong style="color:var(--green)">Tunnel Active</strong><br>Mobile can connect via this URL';
+                }
+            } catch (e) { ['tunnel-url', 'pl-tunnel-url'].forEach(id => { const e = document.getElementById(id); if (e) e.textContent = 'Tunnel unavailable' }) }
+        }
+
+        async function fetchStatus() {
+            try {
+                const r = await fetch(API + '/api/status'), d = await r.json();
+                const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v };
+                set('pl-os', d.os || '—'); set('pl-model', d.model || '—'); set('pl-provider', d.provider || '—');
+                document.getElementById('pl-status').innerHTML = d.status === 'online' ? '<strong style="color:var(--green)">✅ Backend Online</strong><br>All systems operational' : '<span style="color:var(--red)">❌ Offline</span>';
+            } catch (e) { }
+        }
+
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedDate = new Date();
+        let allEvents = [];
+
+        async function fetchCalendar() {
+            try {
+                const r = await fetch(API + '/api/calendar?include_done=true');
+                const d = await r.json();
+                allEvents = d.events || [];
+                renderCalendarGrid();
+                renderTaskList();
+            } catch (e) {
+                document.getElementById('cal-event-list').innerHTML = '<div style="color:var(--red);padding:20px;text-align:center">Failed to load events</div>';
+            }
+        }
+
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            else if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            renderCalendarGrid();
+        }
+
+        function selectDate(y, m, d) {
+            selectedDate = new Date(y, m, d);
+            renderCalendarGrid();
+            renderTaskList();
+        }
+
+        function renderCalendarGrid() {
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('cal-month-label').textContent = `${months[currentMonth]} ${currentYear}`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+            let html = '';
+            for (let i = firstDay; i > 0; i--) html += `<div class="cal-day other-month"><div class="cal-day-num">${daysInPrevMonth - i + 1}</div></div>`;
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const isSelected = selectedDate.getDate() === i && selectedDate.getMonth() === currentMonth && selectedDate.getFullYear() === currentYear;
+                const dStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const dayEvents = allEvents.filter(e => e.event_date && e.event_date.startsWith(dStr));
+
+                let dotsHtml = '';
+                if (dayEvents.length > 0) {
+                    const colors = ['purple', 'cyan', 'yellow'];
+                    dotsHtml = '<div class="cal-day-dots">';
+                    dayEvents.slice(0, 3).forEach((e, idx) => { dotsHtml += `<div class="cal-dot ${e.is_done ? 'green' : colors[idx % 3]}"></div>`; });
+                    if (dayEvents.length > 3) dotsHtml += `<div style="font-size:8px;color:var(--muted);margin-left:2px">+</div>`;
+                    dotsHtml += '</div>';
+                }
+                html += `<div class="cal-day ${isSelected ? 'active' : ''}" onclick="selectDate(${currentYear}, ${currentMonth}, ${i})"><div class="cal-day-num">${i}</div>${dotsHtml}</div>`;
+            }
+
+            const remaining = 42 - (firstDay + daysInMonth);
+            for (let i = 1; i <= remaining; i++) html += `<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
+
+            document.getElementById('cal-days-grid').innerHTML = html;
+        }
+
+        function renderTaskList() {
+            const dateStr = selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+            document.getElementById('cal-selected-date-text').textContent = dateStr;
+            const isoDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+            const dayEvents = allEvents.filter(e => e.event_date && e.event_date.startsWith(isoDate));
+            const el = document.getElementById('cal-event-list');
+
+            if (dayEvents.length > 0) {
+                el.innerHTML = dayEvents.map(e => `
+                    <div class="event-card ${e.is_done ? 'completed' : ''}">
+                        <div class="event-time">${e.event_time ? e.event_time : 'All Day'}</div>
+                        <div class="event-title">${e.title}</div>
+                        ${e.description ? `<div class="event-meta">${e.description}</div>` : ''}
+                        <div class="event-actions">
+                            ${!e.is_done ? `<button class="ev-btn" onclick="completeEvent(${e.id})" onmouseover="this.style.background='rgba(34, 197, 94, 0.15)'" onmouseout="this.style.background='transparent'" style="border-color:rgba(34, 197, 94, 0.4);color:var(--green);">Complete</button>` : ''}
+                            <button class="ev-btn" onclick="deleteEvent(${e.id})" onmouseover="this.style.background='rgba(239, 68, 68, 0.15)'" onmouseout="this.style.background='transparent'" style="border-color:rgba(239, 68, 68, 0.4);color:var(--red);">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:30px;text-align:center">No events scheduled.</div>';
+            }
+        }
+
+        async function completeEvent(id) { try { await fetch(API + '/api/calendar/' + id + '/done', { method: 'POST' }); addLog('Event #' + id + ' completed'); fetchCalendar() } catch (e) { } }
+        async function deleteEvent(id) { try { await fetch(API + '/api/calendar/' + id, { method: 'DELETE' }); addLog('Event #' + id + ' deleted'); fetchCalendar() } catch (e) { } }
+
+        function showAddEvent() { document.getElementById('add-event-modal').classList.add('show'); document.getElementById('ev-date').value = new Date().toISOString().split('T')[0] }
+        function hideAddEvent() { document.getElementById('add-event-modal').classList.remove('show') }
+        async function addEvent() {
+            const title = document.getElementById('ev-title').value.trim(); if (!title) return;
+            const body = { title, event_date: document.getElementById('ev-date').value, event_time: document.getElementById('ev-time').value, description: document.getElementById('ev-desc').value };
+            try {
+                await fetch(API + '/api/calendar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                addLog('Added event: ' + title); hideAddEvent(); fetchCalendar(); document.getElementById('ev-title').value = ''; document.getElementById('ev-desc').value = ''
+            } catch (e) { }
+        }
+
+        async function fetchProcesses() {
+            document.getElementById('proc-list').innerHTML = '<div style="text-align:center;padding:20px"><span class="spinner"></span> Loading processes...</div>';
+            try {
+                const r = await fetch(API + '/api/processes?sort=ram'), d = await r.json();
+                document.getElementById('proc-list').innerHTML = d.processes.slice(0, 50).map(p => {
+                    const cpuColor = p.cpu < 2 ? 'var(--green)' : (p.cpu < 10 ? 'var(--yellow)' : 'var(--red)');
+                    const ramColor = p.ram_mb > 1000 ? 'var(--orange)' : 'var(--text)';
+                    return `<div style="display:grid; grid-template-columns:80px 1fr 100px 100px 120px; gap:16px; font-size:13px; padding:12px 20px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); border-radius:12px; align-items:center; transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                        <div style="font-family:'JetBrains Mono',monospace;color:var(--muted)">${p.pid}</div>
+                        <div style="color:var(--text); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
+                        <div style="color:${cpuColor};">${p.cpu}%</div>
+                        <div style="color:${ramColor};">${(p.ram_mb >= 1024 ? (p.ram_mb / 1024).toFixed(1) + ' GB' : p.ram_mb + ' MB')}</div>
+                        <div style="text-align:right;">
+                            <button onclick="killProcess(${p.pid})" style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); color:var(--red); padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='var(--red)'; this.style.color='#fff';" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'; this.style.color='var(--red)';">End Task</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) { document.getElementById('proc-list').innerHTML = '<div style="color:var(--red);padding:20px;text-align:center">Failed to load</div>'; }
+        }
+
+        async function killProcess(pid) {
+            if (!confirm(`Are you sure you want to end process PID ${pid}?`)) return;
+            try {
+                await fetch(API + '/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: 'taskkill /F /PID ' + pid }) });
+                fetchProcesses();
+                addLog('Killed PID ' + pid);
+            } catch (e) { alert('Failed to kill process.'); }
+        }
+
+        async function doPower(action) {
+            if (action === 'shutdown' || action === 'restart') { if (!confirm('Are you sure you want to ' + action + '?')) return }
+            try { await fetch(API + '/api/power', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }); addLog('Power: ' + action) } catch (e) { }
+        }
+
+        // ═══ Chat ═══
+        let loading = false;
+        let ttsEnabled = true; // Echo talks back by default
+        function speakText(text) {
+            if (!ttsEnabled || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel(); // Stop any ongoing speech
+            // Clean text for TTS (remove markdown, special chars, etc.)
+            const clean = text.replace(/<[^>]+>/g, '').replace(/[#*_`~]/g, '').replace(/\n/g, '. ').substring(0, 500);
+            if (!clean.trim()) return;
+            const utter = new SpeechSynthesisUtterance(clean);
+            utter.rate = 1.1; utter.pitch = 1.0; utter.volume = 1.0;
+            // Try to use a good voice
+            const voices = window.speechSynthesis.getVoices();
+            const preferred = voices.find(v => v.name.includes('Microsoft Zira') || v.name.includes('Google US English') || v.name.includes('Samantha'));
+            if (preferred) utter.voice = preferred;
+            window.speechSynthesis.speak(utter);
+        }
+        function addMsg(container, text, isUser) {
+            const d = document.createElement('div');
+            const safeText = text.replace(/\n/g, '<br>');
+
+            if (container === 'term-chat-messages') {
+                d.className = 'term-msg-wrapper ' + (isUser ? 'user' : 'ai');
+                d.style.cssText = `align-self:${isUser ? 'flex-end' : 'flex-start'}; max-width:80%; display:flex; gap:16px; animation:msgIn 0.3s ease;`;
+                const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                if (isUser) {
+                    d.innerHTML = `
+                        <div style="flex:1; background:rgba(0, 220, 232, 0.05); border:1px solid rgba(0, 220, 232, 0.2); border-radius:16px; padding:16px 20px; text-align:right;">
+                            <div style="font-size:11px; color:var(--cyan); font-weight:700; margin-bottom:8px; letter-spacing:1px; display:flex; justify-content:space-between; flex-direction:row-reverse;">
+                                <span>GUEST_USER</span><span style="color:var(--text2); font-weight:400;">${time}</span>
+                            </div>
+                            <div style="font-size:14px; color:var(--text); line-height:1.6;">${safeText}</div>
+                        </div>
+                        <div style="width:44px; height:44px; border-radius:50%; background:rgba(0, 220, 232, 0.1); border:1px solid rgba(0, 220, 232, 0.3); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" style="width:20px;height:20px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                    `;
+                } else {
+                    d.innerHTML = `
+                        <div style="width:44px; height:44px; border-radius:50%; background:rgba(180, 80, 255, 0.1); border:1px solid rgba(180, 80, 255, 0.3); display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative;">
+                            <div style="position:absolute; bottom:0px; right:0px; width:12px; height:12px; background:var(--green); border-radius:50%; border:2px solid var(--bg-card);"></div>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" style="width:20px;height:20px"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+                        </div>
+                        <div style="flex:1; background:var(--bg-card); border:1px solid rgba(180, 80, 255, 0.15); border-radius:16px; padding:16px 20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); backdrop-filter:blur(10px);">
+                            <div style="font-size:11px; color:var(--purple); font-weight:700; margin-bottom:8px; letter-spacing:1px; display:flex; justify-content:space-between;">
+                                <span>NEXUS CORE</span><span style="color:var(--text2); font-weight:400;">${time}</span>
+                            </div>
+                            <div style="font-size:14px; color:var(--text); line-height:1.6;">${safeText}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                d.className = 'chat-msg ' + (isUser ? 'user' : 'ai');
+                d.innerHTML = '<div class="chat-msg-label">' + (isUser ? 'YOU' : 'ECHO AI') + '</div>' + safeText;
+            }
+
+            document.getElementById(container).appendChild(d); document.getElementById(container).scrollTop = 99999;
+            if (!isUser) speakText(text);
+        }
+
+        async function doSend(inputId, chatId) {
+            const inp = document.getElementById(inputId), text = inp.value.trim(); if (!text || loading) return;
+            inp.value = ''; addMsg(chatId, text, true); addLog('Command: "' + text + '"'); loading = true;
+
+            const ld = document.createElement('div');
+            ld.id = 'ld-' + chatId;
+
+            if (chatId === 'term-chat-messages') {
+                ld.style.cssText = `align-self:flex-start; display:flex; gap:16px; padding:10px 0;`;
+                ld.innerHTML = `
+                    <div style="width:44px; height:44px; border-radius:50%; background:rgba(180, 80, 255, 0.1); border:1px solid rgba(180, 80, 255, 0.3); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <span class="spinner" style="width:16px;height:16px;border-top-color:var(--purple);"></span>
+                    </div>
+                `;
+            } else {
+                ld.className = 'chat-msg ai';
+                ld.innerHTML = '<div class="chat-msg-label">ECHO AI</div><span class="spinner"></span> Processing...';
+            }
+
+            document.getElementById(chatId).appendChild(ld); document.getElementById(chatId).scrollTop = 99999;
+            try {
+                const r = await fetch(API + '/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: text, source: 'pc' }) });
+                const d = await r.json();
+                document.getElementById('ld-' + chatId)?.remove(); addMsg(chatId, d.response || d.result || 'Done.', false); addLog('Response received')
+            } catch (e) {
+                document.getElementById('ld-' + chatId)?.remove(); addMsg(chatId, 'Error: ' + e.message, false)
+            }
+            loading = false
+        }
+        function sendFromHome() { doSend('home-chat-input', 'home-chat-messages') }
+        function sendFromTerm() { doSend('term-chat-input', 'term-chat-messages') }
+        document.getElementById('home-chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendFromHome() });
+        document.getElementById('term-chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendFromTerm() });
+
+        function sendQuick(cmd) { switchPage('terminal'); setTimeout(() => { document.getElementById('term-chat-input').value = cmd; sendFromTerm() }, 100) }
+        function copyTunnel() { if (_tunnelUrl) { navigator.clipboard.writeText(_tunnelUrl); addLog('Tunnel URL copied!') } }
+
+        // ═══ Command Log Sync (show mobile/telegram/voice commands) ═══
+        let _lastCmdLogId = 0;
+        let _seenCmdIds = new Set();
+        async function fetchCommandLog() {
+            try {
+                const r = await fetch(API + '/api/command/log?since=' + _lastCmdLogId);
+                const d = await r.json();
+                if (d.commands && d.commands.length > 0) {
+                    d.commands.forEach(cmd => {
+                        _lastCmdLogId = Math.max(_lastCmdLogId, cmd.id);
+                        if (cmd.source === 'pc') return; // skip our own commands
+                        if (cmd.status !== 'done' && cmd.status !== 'error') return; // wait until complete
+                        if (_seenCmdIds.has(cmd.id)) return; // skip duplicates
+                        _seenCmdIds.add(cmd.id);
+
+                        let srcLabel = '';
+                        if (cmd.source === 'mobile') srcLabel = '📱 [MOBILE] ';
+                        else if (cmd.source === 'telegram') srcLabel = '📱 [TELEGRAM] ';
+                        else if (cmd.source === 'voice') srcLabel = '🎙️ [VOICE] ';
+                        else return; // Ignore 'assistant' and other internal sources so they don't spam the chat UI
+
+                        addMsg('home-chat-messages', srcLabel + cmd.command, true);
+                        if (cmd.response) {
+                            addMsg('home-chat-messages', cmd.response, false);
+                        }
+                        addLog(srcLabel + cmd.command);
+                    });
+                }
+            } catch (e) { }
+        }
+
+        // ═══ Task Queue Sync (for new Queue page & Home Screen) ═══
+        let _lastRunningTaskId = -1;
+        async function fetchTaskQueue() {
+            try {
+                const r = await fetch(API + '/api/tasks/queue');
+                const d = await r.json();
+
+                // 1. Update Home Screen (Quick Terminal)
+                if (d.tasks && d.tasks.length > 0) {
+                    const runningTask = d.tasks.find(t => t.status === 'running');
+                    if (runningTask && runningTask.id !== _lastRunningTaskId) {
+                        _lastRunningTaskId = runningTask.id;
+                        const srcLabel = `[${runningTask.source.toUpperCase()}]`;
+                        addMsg('home-chat-messages', `⚙️ <strong>Executing Queued Task #${runningTask.id}</strong><br><span style="color:var(--cyan)">${srcLabel}</span> ${runningTask.command}`, false);
+                    }
+                }
+
+                // 1.5 Update Home Screen Mini Queue
+                const miniList = document.getElementById('mini-queue-list');
+                if (miniList) {
+                    const activeTasks = d.tasks.filter(t => t.status === 'running' || t.status === 'pending');
+                    if (activeTasks.length === 0) {
+                        miniList.innerHTML = '<div style="color:var(--muted); font-size:12px; text-align:center; padding:10px">Queue is empty.</div>';
+                    } else {
+                        miniList.innerHTML = activeTasks.map(t => {
+                            let statusColor = t.status === 'running' ? 'var(--yellow)' : 'var(--muted)';
+                            let spinner = t.status === 'running' ? '<span class="spinner" style="width:10px;height:10px;border-top-color:var(--yellow);margin-right:6px"></span>' : '';
+                            return `<div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:10px; font-size:12px">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+                                    <span style="color:${statusColor}; font-weight:700; font-size:10px; display:flex; align-items:center">${spinner}${t.status.toUpperCase()}</span>
+                                    <span style="color:var(--cyan); font-size:10px; font-weight:600">${t.source.toUpperCase()}</span>
+                                </div>
+                                <div style="color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${t.command}</div>
+                            </div>`;
+                        }).join('');
+                    }
+                }
+
+                // 2. Update Queue Page (if active)
+                if (currentPage !== 'queue') return;
+
+                const list = document.getElementById('queue-list');
+                if (!d.tasks || d.tasks.length === 0) {
+                    list.innerHTML = '<div style="color:var(--muted); text-align:center; padding:40px;">No queued tasks.</div>';
+                    return;
+                }
+
+                list.innerHTML = d.tasks.map(t => {
+                    let statusColor = 'var(--muted)';
+                    if (t.status === 'running') statusColor = 'var(--yellow)';
+                    else if (t.status === 'done') statusColor = 'var(--green)';
+                    else if (t.status === 'failed' || t.status === 'error') statusColor = 'var(--red)';
+
+                    return `<div style="display:grid; grid-template-columns:60px 100px 1fr 100px 150px; padding:14px 20px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); border-radius:12px; align-items:center; margin-bottom:8px;">
+                        <div style="font-family:'JetBrains Mono',monospace; color:var(--text2);">#${t.id}</div>
+                        <div style="color:${statusColor}; font-weight:700; font-size:12px; display:flex; align-items:center; gap:6px;">
+                            ${t.status === 'running' ? '<span class="spinner" style="width:12px;height:12px;border-top-color:var(--yellow)"></span>' : ''}
+                            ${t.status.toUpperCase()}
+                        </div>
+                        <div style="color:var(--text); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.command}</div>
+                        <div style="color:var(--cyan); font-size:12px; font-weight:600;">${t.source.toUpperCase()}</div>
+                        <div style="color:var(--muted); font-size:12px; text-align:right;">${t.created_at.split(' ')[1]}</div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                if (currentPage === 'queue') {
+                    document.getElementById('queue-list').innerHTML = '<div style="color:var(--red); text-align:center; padding:40px;">Failed to load task queue.</div>';
+                }
+            }
+        }
+
+        // ═══ Init ═══
+        fetchStats(); fetchTunnel(); fetchVolume(); fetchCalendar(); fetchTaskQueue();
+        setInterval(fetchStats, 5000);
+        setInterval(fetchTunnel, 60000);
+        setInterval(fetchCommandLog, 5000);
+        setInterval(() => { if (currentPage === 'calendar') fetchCalendar(); }, 10000);
+        setInterval(fetchTaskQueue, 5000); // Queue sync every 5s
+        addLog('Echo Command Center initialized');
+
+        // ═══ Voice Recognition (Web Speech API) ═══
+        let voiceTarget = null;
+        let recognition = null;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SR();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            recognition.onresult = function (e) {
+                let final = '', interim = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    if (e.results[i].isFinal) final += e.results[i][0].transcript;
+                    else interim += e.results[i][0].transcript;
+                }
+                const inputId = voiceTarget === 'home' ? 'home-chat-input' : 'term-chat-input';
+                document.getElementById(inputId).value = final || interim;
+            };
+            recognition.onend = function () {
+                document.querySelectorAll('.mic-btn').forEach(b => b.classList.remove('listening'));
+                if (voiceTarget) {
+                    const inputId = voiceTarget === 'home' ? 'home-chat-input' : 'term-chat-input';
+                    const val = document.getElementById(inputId).value.trim();
+                    if (val) { voiceTarget === 'home' ? sendFromHome() : sendFromTerm(); }
+                    addLog('🎤 Voice: "' + val + '"');
+                }
+                voiceTarget = null;
+            };
+        }
+        function toggleVoice(target) {
+            if (!recognition) { addLog('❌ Speech not supported in this browser'); return; }
+            if (voiceTarget) { recognition.stop(); return; }
+            voiceTarget = target;
+            document.getElementById(target + '-mic-btn').classList.add('listening');
+            recognition.start();
+            addLog('🎤 Listening...');
+        }
+
+        // ═══ Keyboard Shortcuts ═══
+        const cmdHistory = [];
+        let histIdx = -1;
+        document.addEventListener('keydown', function (e) {
+            // Ctrl+1-6 page shortcuts
+            if (e.ctrlKey && e.key >= '1' && e.key <= '6') {
+                e.preventDefault();
+                const pages = ['home', 'terminal', 'calendar', 'power'];
+                switchPage(pages[parseInt(e.key) - 1]);
+            }
+            // Ctrl+M = voice
+            if (e.ctrlKey && e.key === 'm') { e.preventDefault(); const pg = document.getElementById('page-terminal').classList.contains('active') ? 'term' : 'home'; toggleVoice(pg); }
+            // Ctrl+L = screenshot
+            if (e.ctrlKey && e.key === 'l') { e.preventDefault(); fetchScreenshot(); }
+            // Up/Down arrow for command history in focused input
+            if (e.key === 'ArrowUp' && document.activeElement.classList.contains('chat-input')) {
+                e.preventDefault();
+                if (cmdHistory.length > 0 && histIdx < cmdHistory.length - 1) { histIdx++; document.activeElement.value = cmdHistory[histIdx]; }
+            }
+            if (e.key === 'ArrowDown' && document.activeElement.classList.contains('chat-input')) {
+                e.preventDefault();
+                if (histIdx > 0) { histIdx--; document.activeElement.value = cmdHistory[histIdx]; } else { histIdx = -1; document.activeElement.value = ''; }
+            }
+        });
+
+        // Override doSend to save history
+        const _origDoSend = doSend;
+        doSend = async function (inputId, chatId) {
+            const val = document.getElementById(inputId).value.trim();
+            if (val) { cmdHistory.unshift(val); if (cmdHistory.length > 50) cmdHistory.pop(); histIdx = -1; }
+            return _origDoSend(inputId, chatId);
+        };
+
+        // ═══ Volume Control ═══
+        async function fetchVolume() {
+            try {
+                const r = await fetch(API + '/api/volume'); const d = await r.json();
+                if (d.volume !== undefined) { document.getElementById('vol-slider').value = d.volume; document.getElementById('vol-val').textContent = d.volume + '%'; }
+            } catch (e) { }
+        }
+        async function setVolume(v) {
+            document.getElementById('vol-val').textContent = v + '%';
+            try { await fetch(API + '/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: 'set volume to ' + v + ' percent' }) }); } catch (e) { }
+        }
+
+        // ═══ Live Camera ═══
+        let cameraStream = null;
+        let _frameSaveInterval = null;
+        async function startCamera() {
+            try {
+                const video = document.getElementById('camera-feed');
+                const placeholder = document.getElementById('camera-placeholder');
+                const dot = document.getElementById('cam-dot');
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720, facingMode: 'user' }, audio: false });
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                placeholder.style.display = 'none';
+                dot.style.background = 'var(--green)';
+                addLog('Camera started');
+                // Share frames with backend every 2s so mobile/voice can access camera
+                if (_frameSaveInterval) clearInterval(_frameSaveInterval);
+                _frameSaveInterval = setInterval(() => {
+                    if (!cameraStream || video.readyState < 2) return;
+                    try {
+                        const c = document.createElement('canvas');
+                        c.width = video.videoWidth || 640;
+                        c.height = video.videoHeight || 480;
+                        c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+                        const b64 = c.toDataURL('image/jpeg', 0.7).split(',')[1];
+                        fetch(API + '/api/camera/frame', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ frame: b64 }) }).catch(() => { });
+                    } catch (e) { }
+                }, 2000);
+            } catch (e) {
+                addLog('❌ Camera: ' + e.message);
+                document.getElementById('camera-placeholder').innerHTML = '<div style="font-size:11px;color:var(--red);font-family:\'JetBrains Mono\'">Camera unavailable: ' + e.message + '</div>';
+            }
+        }
+        async function analyzeCamera() {
+            const video = document.getElementById('camera-feed');
+            const analysis = document.getElementById('camera-analysis');
+            analysis.style.display = 'block';
+
+            // Check if camera is active
+            if (!cameraStream || video.style.display === 'none') {
+                analysis.innerHTML = '<span style="color:var(--yellow)">Start the camera first by clicking the camera area above.</span>';
+                return;
+            }
+
+            // Capture frame from browser video element via canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]; // base64
+
+            analysis.innerHTML = '<span class="spinner" style="width:14px;height:14px"></span> <span style="color:var(--purple);font-weight:600">Analyzing camera feed...</span>';
+            addLog('🧠 Analyzing camera...');
+            try {
+                const r = await fetch(API + '/api/camera/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+                const d = await r.json();
+                if (d.description) {
+                    analysis.innerHTML = '<span style="color:var(--purple);font-weight:600">🧠 AI:</span> ' + d.description;
+                    addLog('🧠 Camera analysis complete');
+                } else {
+                    analysis.innerHTML = '<span style="color:var(--red)">Analysis failed: ' + (d.error || 'Unknown error') + '</span>';
+                }
+            } catch (e) {
+                analysis.innerHTML = '<span style="color:var(--red)">Error: ' + e.message + '</span>';
+            }
+        }
+    </script>
+
+    <!-- Premium CSS additions -->
+    <style>
+        .mic-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            background: rgba(168, 85, 247, 0.08);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: var(--purple);
+            flex-shrink: 0
+        }
+
+        .mic-btn:hover {
+            background: rgba(168, 85, 247, 0.15);
+            border-color: rgba(168, 85, 247, 0.5);
+            transform: scale(1.06)
+        }
+
+        .mic-btn.listening {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--red);
+            color: var(--red);
+            animation: mic-pulse 1s infinite
+        }
+
+        .mic-btn svg {
+            width: 16px;
+            height: 16px
+        }
+
+        @keyframes mic-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3)
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0)
+            }
+        }
+
+        .vol-range {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            outline: none;
+            cursor: pointer
+        }
+
+        .vol-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 220, 232, 0.4)
+        }
+
+        .vol-range::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--cyan);
+            cursor: pointer;
+            border: none
+        }
+    </style>
+</body>
+
+</html>

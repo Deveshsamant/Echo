@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_card">#FF151C26</color>
+    <color name="bg_card_border">#FF1E2A38</color>
+    <color name="bg_primary">#FF0A0E14</color>
+    <color name="bg_secondary">#FF111820</color>
+    <color name="cyan_dark">#FF008FA3</color>
+    <color name="cyan_glow">#4000DCFF</color>
+    <color name="cyan_primary">#FF00DCFF</color>
+    <color name="green_accent">#FF2ED573</color>
+    <color name="purple_accent">#FF9B59FF</color>
+    <color name="red_accent">#FFFF4757</color>
+    <color name="text_muted">#FF556677</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FF8899AA</color>
+    <color name="yellow_accent">#FFFFA502</color>
+    <string name="app_name">Echo</string>
+    <style name="Theme.EchoApp" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0A0E14</item>
+        <item name="android:navigationBarColor">#0A0E14</item>
+        <item name="android:windowBackground">#0A0E14</item>
+    </style>
+</resources>
